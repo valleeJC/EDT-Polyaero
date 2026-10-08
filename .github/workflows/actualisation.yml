@@ -2,8 +2,8 @@ name: Actualisation de l'Emploi du Temps
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # Tous les jours à 06:00 UTC (07:00 ou 08:00 heure française selon la saison)
-  workflow_dispatch:      # Lancement manuel depuis l'onglet Actions
+    - cron: '0 6 * * *'  # Tous les jours à 06:00 UTC
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -17,10 +17,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configuration de Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+      # Étape setup-python retirée car inutile sur ton runner local
 
       - name: Installer les dépendances
         run: |
