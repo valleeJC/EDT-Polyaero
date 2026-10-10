@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Affichage TV Polyaéro Tallard</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background-color: #1e293b;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #334155;
+        }
+        header h1 {
+            font-size: 1.8rem;
+            color: #38bdf8;
+        }
+        #clock {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #f1f5f9;
+        }
+        main {
+            flex: 1;
+            position: relative;
+            padding: 20px;
+        }
+        .slide {
+            display: none;
+            height: 100%;
+            flex-direction: column;
+        }
+        .slide.active {
+            display: flex;
+        }
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #cbd5e1;
+        }
+        .highlight {
+            color: #38bdf8;
+        }
+
+        .week-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            height: calc(100% - 40px);
+        }
+        .day-column {
+            background-color: #1e293b;
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #334155;
+        }
+        .day-column.today {
+            border: 2px solid #38bdf8;
+        }
+        .day-header {
+            font-weight: bold;
+            text-align: center;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #475569;
+            color: #94a3b8;
+        }
+        .day-column.today .day-header {
+            color: #38bdf8;
+        }
+
+        .today-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            height: calc(100% - 40px);
+        }
+        .today-column {
+            background-color: #1e293b;
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #334155;
+        }
+        .promo-header {
+            font-weight: bold;
+            text-align: center;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #475569;
+            color: #38bdf8;
+            font-size: 1.2rem;
+        }
+
+        /* Structure par Créneaux horaires strictes */
+        .events-container {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .slot-row {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+        .split-slot .event-card {
+            flex: 1;
+            width: 50%;
+        }
+        .promo-slot .event-card {
+            width: 100%;
+        }
+
+        .event-card {
+            background-color: #334155;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border-left: 4px solid #38bdf8;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .event-card.empty-card {
+            background-color: transparent;
+            border: none;
+        }
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .event-time {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #cbd5e1;
+        }
+        .badge-group {
+            background-color: #f59e0b;
+            color: #0f172a;
+            font-size: 0.7rem;
+            font-weight: bold;
+            padding: 1px 5px;
+            border-radius: 4px;
+        }
+        .event-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin: 4px 0;
+            color: #ffffff;
+        }
+        .event-room, .event-teacher {
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+        .no-event {
+            text-align: center;
+            color: #64748b;
+            font-style: italic;
+            margin-top: 20px;
+        }
+
+        footer {
+            background-color: #1e293b;
+            height: 8px;
+            width: 100%;
+            position: relative;
+        }
+        #progress-bar {
+            height: 100%;
+            background-color: #38bdf8;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Polyaéro Tallard — Emploi du Temps</h1>
+        <div id="clock">00:00:00</div>
+    </header>
+
+    <main>
+        
+        <div class="slide active" id="slide-0">
+            <h2>Planning Semaine — <span class="highlight">LP MIA</span></h2>
+            <div class="week-grid">
+        
+            <div class="day-column ">
+                <div class="day-header">Lundi 05/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Mardi 06/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Mercredi 07/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Jeudi 08/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Vendredi 09/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div></div></div>
+        <div class="slide " id="slide-1">
+            <h2>Planning Semaine — <span class="highlight">BUT 3 SNRV</span></h2>
+            <div class="week-grid">
+        
+            <div class="day-column ">
+                <div class="day-header">Lundi 05/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Mardi 06/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Mercredi 07/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Jeudi 08/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Vendredi 09/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div></div></div>
+        <div class="slide " id="slide-2">
+            <h2>Planning Semaine — <span class="highlight">M1 MPAD</span></h2>
+            <div class="week-grid">
+        
+            <div class="day-column ">
+                <div class="day-header">Lundi 05/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Mardi 06/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Mercredi 07/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Jeudi 08/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Vendredi 09/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div></div></div>
+        <div class="slide " id="slide-3">
+            <h2>Planning Semaine — <span class="highlight">M2 MPAD</span></h2>
+            <div class="week-grid">
+        
+            <div class="day-column ">
+                <div class="day-header">Lundi 05/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Mardi 06/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Mercredi 07/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Jeudi 08/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Vendredi 09/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div></div></div>
+    <div class="slide" id="slide-4">
+        <h2>Aujourd'hui à Polyaéro — <span class="highlight">Samedi 10 octobre 2026</span></h2>
+        <div class="today-grid">
+    
+        <div class="today-column">
+            <div class="promo-header">LP MIA</div>
+            <div class="events-container">
+        <div class="no-event">Pas de cours aujourd'hui</div></div></div>
+        <div class="today-column">
+            <div class="promo-header">BUT 3 SNRV</div>
+            <div class="events-container">
+        <div class="no-event">Pas de cours aujourd'hui</div></div></div>
+        <div class="today-column">
+            <div class="promo-header">M1 MPAD</div>
+            <div class="events-container">
+        <div class="no-event">Pas de cours aujourd'hui</div></div></div>
+        <div class="today-column">
+            <div class="promo-header">M2 MPAD</div>
+            <div class="events-container">
+        <div class="no-event">Pas de cours aujourd'hui</div></div></div></div></div>
+    </main>
+
+    <footer>
+        <div id="progress-bar"></div>
+    </footer>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('fr-FR');
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        const totalSlides = 5;
+        const duration = 5 * 1000;
+        let currentSlide = 0;
+        let startTime = Date.now();
+
+        function switchSlide() {
+            document.getElementById(`slide-${currentSlide}`).classList.remove('active');
+            currentSlide = (currentSlide + 1) % totalSlides;
+            document.getElementById(`slide-${currentSlide}`).classList.add('active');
+            startTime = Date.now();
+        }
+
+        function updateProgressBar() {
+            const elapsed = Date.now() - startTime;
+            const percentage = Math.min((elapsed / duration) * 100, 100);
+            document.getElementById('progress-bar').style.width = percentage + '%';
+
+            if (elapsed >= duration) {
+                switchSlide();
+            }
+        }
+
+        setInterval(updateProgressBar, 100);
+    </script>
+</body>
+</html>
