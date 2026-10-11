@@ -17,19 +17,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configuration de Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
       - name: Installer les dépendances
+        shell: powershell
         run: |
+          # Utilisation directe du python de la machine
           python -m pip install --upgrade pip
           pip install requests icalendar urllib3 tzdata
 
       - name: Exécuter le script
         env:
           PYTHONIOENCODING: "utf-8"
+        shell: powershell
         run: |
           python EDT_actualisation.py
 
