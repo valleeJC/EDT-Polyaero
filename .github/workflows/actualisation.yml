@@ -1,4 +1,4 @@
-name: Actualisation de l'Emploi du Temps
+name: Actualisation du Planning EDT
 
 on:
   schedule:
@@ -11,6 +11,9 @@ permissions:
 jobs:
   build-and-commit:
     runs-on: self-hosted
+    env:
+      PYTHON_BIN: "C:\\Users\\JC Vallée\\AppData\Local\\Programs\\Python\\Python311\\python.exe"
+
     steps:
       - name: Récupérer le code
         uses: actions/checkout@v4
@@ -20,16 +23,15 @@ jobs:
       - name: Installer les dépendances
         shell: powershell
         run: |
-          # Utilisation directe du python de la machine
-          python -m pip install --upgrade pip
-          pip install requests icalendar urllib3 tzdata
+          & "${{ env.PYTHON_BIN }}" -m pip install --upgrade pip
+          & "${{ env.PYTHON_BIN }}" -m pip install requests icalendar urllib3 tzdata
 
       - name: Exécuter le script
         env:
           PYTHONIOENCODING: "utf-8"
         shell: powershell
         run: |
-          python EDT_actualisation.py
+          & "${{ env.PYTHON_BIN }}" EDT_actualisation.py
 
       - name: Déployer sur gh-pages (PowerShell)
         shell: powershell
