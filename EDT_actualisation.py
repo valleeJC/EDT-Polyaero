@@ -125,9 +125,23 @@ def extraire_details(event, promo):
         else:
             groupe = "PROMO"
 
+    # Recherche stricte et sécurisée du professeur
     for l in lignes:
-        if ("," in l or " " in l) and not enseignant and "Exporté" not in l and "GROUPE" not in l.upper():
-            enseignant = l
+        l_upper = l.upper()
+        mots_exclus = ["MODIFIÉ", "EXPORTÉ", "GROUPE", "LICENCE", "BUT", "MASTER", "M1", "M2", "PROMO"]
+        
+        # On ignore les lignes indésirables
+        if any(mot in l_upper for mot in mots_exclus):
+            continue
+        if l.startswith("(") or l.startswith("📍") or l.startswith("salle") or "http" in l:
+            continue
+            
+        # Critères stricts pour un nom de prof : pas de chiffres, pas de caractères spéciaux bizarres, longueur raisonnable
+        if not enseignant and 3 <= len(l) <= 30 and not any(char.isdigit() for char in l):
+            # Vérification qu'il y a au moins un espace (Nom Prénom) ou que ça y ressemble
+            if " " in l or "-" in l:
+                enseignant = l
+                break
 
     return {
         'titre': titre,
@@ -137,7 +151,6 @@ def extraire_details(event, promo):
         'enseignant': enseignant,
         'groupe': groupe
     }
-
 
 def filtrer_semaine_et_jour(evenements, promo):
     """Filtre les événements pour la semaine courante et le jour J."""
