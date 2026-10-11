@@ -2,8 +2,8 @@ name: Actualisation de l'Emploi du Temps
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # Tous les jours à 06:00 UTC
-  workflow_dispatch:
+    - cron: '0 6 * * *'  # Tous les jours à 6h UTC (8h heure française)
+  workflow_dispatch:      # Lancement manuel
 
 permissions:
   contents: write
@@ -17,7 +17,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Étape setup-python retirée car inutile sur ton runner local
+      - name: Configuration de Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Installer les dépendances
         run: |
@@ -60,6 +63,6 @@ jobs:
           git commit -m "🤖 Mise à jour automatique de l'emploi du temps"
           git push origin gh-pages-temp:gh-pages --force
 
-          # 8. Nettoyage local propre
+          # 8. Nettoyage final propre
           git checkout main -f
           git branch -D gh-pages-temp
