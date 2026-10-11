@@ -167,7 +167,6 @@ def grouper_par_creneaux(liste_cours):
     """Regroupe les cours ayant les mêmes heures de début/fin sur un même créneau horaire."""
     creneaux = []
     for c in liste_cours:
-        cle_creneau = (c['debut'], c['fin'])
         trouve = False
         for cr in creneaux:
             if cr['debut'] == c['debut'] and cr['fin'] == c['fin']:
@@ -188,15 +187,13 @@ def grouper_par_creneaux(liste_cours):
 # ==============================================================================
 
 def generer_carte_cours_html(c):
-    """Génère la structure HTML d'une carte de cours incluant le professeur."""
-    badge_groupe = f'<span class="badge-group">{c["groupe"]}</span>' if c['groupe'] != "PROMO" else ''
+    """Génère la structure HTML d'une carte de cours avec l'heure, le titre, la salle et le professeur."""
     prof_html = f'<div class="event-teacher">👤 {c["enseignant"]}</div>' if c['enseignant'] else ''
 
     return f"""
     <div class="event-card">
         <div class="event-header">
             <span class="event-time">{c['debut'].strftime('%H:%M')} - {c['fin'].strftime('%H:%M')}</span>
-            {badge_groupe}
         </div>
         <div class="event-title">{c['titre']}</div>
         <div class="event-room">📍 {c['salle']}</div>
@@ -453,14 +450,6 @@ def generer_page_html(donnees_promos):
             font-size: 0.75rem;
             font-weight: bold;
             color: #cbd5e1;
-        }}
-        .badge-group {{
-            background-color: #f59e0b;
-            color: #0f172a;
-            font-size: 0.65rem;
-            font-weight: bold;
-            padding: 1px 4px;
-            border-radius: 4px;
         }}
         .event-title {{
             font-size: 0.8rem;
