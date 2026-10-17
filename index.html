@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Affichage TV Polyaéro Tallard</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background-color: #1e293b;
+            padding: 12px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #334155;
+        }
+        .header-title-container {
+            display: flex;
+            flex-direction: column;
+        }
+        header h1 {
+            font-size: 1.6rem;
+            color: #38bdf8;
+        }
+        .last-update {
+            font-size: 0.75rem;
+            font-style: italic;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+        #clock {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #f1f5f9;
+        }
+        main {
+            flex: 1;
+            position: relative;
+            padding: 20px;
+        }
+        .slide {
+            display: none;
+            height: 100%;
+            flex-direction: column;
+        }
+        .slide.active {
+            display: flex;
+        }
+        h2 {
+            font-size: 1.4rem;
+            margin-bottom: 12px;
+            color: #cbd5e1;
+        }
+        .highlight {
+            color: #38bdf8;
+        }
+
+        .week-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            height: calc(100% - 35px);
+        }
+        .day-column {
+            background-color: #1e293b;
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #334155;
+        }
+        .day-column.today {
+            border: 2px solid #38bdf8;
+        }
+        .day-header {
+            font-weight: bold;
+            text-align: center;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #475569;
+            color: #94a3b8;
+        }
+        .day-column.today .day-header {
+            color: #38bdf8;
+        }
+
+        .today-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            height: calc(100% - 35px);
+        }
+        .today-column {
+            background-color: #1e293b;
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #334155;
+        }
+        .promo-header {
+            font-weight: bold;
+            text-align: center;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #475569;
+            color: #38bdf8;
+            font-size: 1.2rem;
+        }
+
+        .events-container {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .slot-row {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+        .split-slot .event-card {
+            flex: 1;
+            width: 50%;
+        }
+        .promo-slot .event-card {
+            width: 100%;
+        }
+
+        .event-card {
+            background-color: #334155;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border-left: 4px solid #38bdf8;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .event-card.empty-card {
+            background-color: transparent;
+            border: none;
+        }
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .event-time {
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #cbd5e1;
+        }
+        .event-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin: 3px 0;
+            color: #ffffff;
+        }
+        .event-room, .event-teacher {
+            font-size: 0.7rem;
+            color: #94a3b8;
+        }
+        .no-event {
+            text-align: center;
+            color: #64748b;
+            font-style: italic;
+            margin-top: 20px;
+        }
+
+        footer {
+            background-color: #1e293b;
+            height: 6px;
+            width: 100%;
+            position: relative;
+        }
+        #progress-bar {
+            height: 100%;
+            background-color: #38bdf8;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-title-container">
+            <h1>Polyaéro Tallard — Emploi du Temps</h1>
+            <div class="last-update">Dernière mise à jour : 17/10/2026 à 13:52</div>
+        </div>
+        <div id="clock">00:00:00</div>
+    </header>
+
+    <main>
+        
+        <div class="slide active" id="slide-0">
+            <h2>Planning Semaine — <span class="highlight">LP MIA</span></h2>
+            <div class="week-grid">
+        
+            <div class="day-column ">
+                <div class="day-header">Lundi 12/10</div>
+                <div class="events-container">
+            <div class="slot-row split-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">08:30 - 10:30</span>
+        </div>
+        <div class="event-title">S5 - Mathématiques générales - TD1</div>
+        <div class="event-room">📍 SALLE TD-BLOCH</div>
+        <div class="event-teacher">👤 ATTAFI Latifa</div>
+    </div>
+    
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">08:30 - 10:30</span>
+        </div>
+        <div class="event-title">S6 - CND - TD2</div>
+        <div class="event-room">📍 SALLE TD-VINCI</div>
+        <div class="event-teacher">👤 MOYSAN Joseph</div>
+    </div>
+    </div><div class="slot-row split-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">10:30 - 12:30</span>
+        </div>
+        <div class="event-title">S6 - CND - TD1</div>
+        <div class="event-room">📍 SALLE TD-VINCI</div>
+        <div class="event-teacher">👤 MOYSAN Joseph</div>
+    </div>
+    
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">10:30 - 12:30</span>
+        </div>
+        <div class="event-title">S5 - Mathématiques générales - TD2</div>
+        <div class="event-room">📍 SALLE TD-BLOCH</div>
+        
+    </div>
+    </div><div class="slot-row split-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 15:45</span>
+        </div>
+        <div class="event-title">S5 - Conduite de Projet - TD1</div>
+        <div class="event-room">📍 SALLE TD-BLOCH</div>
+        <div class="event-teacher">👤 PAGNIER Mickael</div>
+    </div>
+    
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 15:45</span>
+        </div>
+        <div class="event-title">S6 - CND - TD2</div>
+        <div class="event-room">📍 SALLE TD-VINCI</div>
+        <div class="event-teacher">👤 MOYSAN Joseph</div>
+    </div>
+    </div><div class="slot-row split-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">15:45 - 17:45</span>
+        </div>
+        <div class="event-title">S6 - CND - TD1</div>
+        <div class="event-room">📍 SALLE TD-VINCI</div>
+        <div class="event-teacher">👤 MOYSAN Joseph</div>
+    </div>
+    
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">15:45 - 17:45</span>
+        </div>
+        <div class="event-title">S5 - Conduite de Projet - TD2</div>
+        <div class="event-room">📍 SALLE TD-BLOCH</div>
+        <div class="event-teacher">👤 PAGNIER Mickael</div>
+    </div>
+    </div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Mardi 13/10</div>
+                <div class="events-container">
+            <div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">08:30 - 10:30</span>
+        </div>
+        <div class="event-title">S6 - Outils informatiques - CM</div>
+        <div class="event-room">📍 Amphi Polyaéro</div>
+        <div class="event-teacher">👤 ABDERAHMANE Abdellahi</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">10:30 - 12:30</span>
+        </div>
+        <div class="event-title">S5 - Projets technologiques - CM</div>
+        <div class="event-room">📍 Amphi Polyaéro</div>
+        <div class="event-teacher">👤 ABDERAHMANE Abdellahi</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 15:45</span>
+        </div>
+        <div class="event-title">S5 - Conduite de Projet - CM</div>
+        <div class="event-room">📍 Amphi Polyaéro</div>
+        <div class="event-teacher">👤 PAGNIER Mickael</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">15:45 - 17:45</span>
+        </div>
+        <div class="event-title">S5 - Conduite de Projet - CM</div>
+        <div class="event-room">📍 Amphi Polyaéro</div>
+        <div class="event-teacher">👤 PAGNIER Mickael</div>
+    </div>
+    </div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Mercredi 14/10</div>
+                <div class="events-container">
+            <div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">08:30 - 12:30</span>
+        </div>
+        <div class="event-title">Présentation technos Polyaero Promo</div>
+        <div class="event-room">📍 SALLE TD-BLOCH</div>
+        
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 15:45</span>
+        </div>
+        <div class="event-title">S5 - Techniques Digitales - CM</div>
+        <div class="event-room">📍 Amphi Polyaéro</div>
+        <div class="event-teacher">👤 ABDERAHMANE Abdellahi</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">17:00 - 19:00</span>
+        </div>
+        <div class="event-title">CONSEIL DEPARTEMENT GMP</div>
+        <div class="event-room">📍 </div>
+        
+    </div>
+    </div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Jeudi 15/10</div>
+                <div class="events-container">
+            <div class="slot-row split-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">08:30 - 10:30</span>
+        </div>
+        <div class="event-title">S6 - Outils informatiques - TD1</div>
+        <div class="event-room">📍 SALLE INFO-ST EXUPERY</div>
+        <div class="event-teacher">👤 ABDERAHMANE Abdellahi</div>
+    </div>
+    
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">08:30 - 10:30</span>
+        </div>
+        <div class="event-title">S5 - Application Maintenance Vue Constructeur - TD2</div>
+        <div class="event-room">📍 salle TD-BREGUET</div>
+        
+    </div>
+    </div><div class="slot-row split-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">10:30 - 12:30</span>
+        </div>
+        <div class="event-title">S5 - Application Maintenance Vue Constructeur - TD1</div>
+        <div class="event-room">📍 salle TD-BREGUET</div>
+        
+    </div>
+    
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">10:30 - 12:30</span>
+        </div>
+        <div class="event-title">S6 - Outils informatiques - TD2</div>
+        <div class="event-room">📍 SALLE INFO-ST EXUPERY</div>
+        <div class="event-teacher">👤 ABDERAHMANE Abdellahi</div>
+    </div>
+    </div><div class="slot-row split-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 15:45</span>
+        </div>
+        <div class="event-title">S5 - Techniques Digitales - TD1</div>
+        <div class="event-room">📍 SALLE TD-BLOCH</div>
+        <div class="event-teacher">👤 ABDERAHMANE Abdellahi</div>
+    </div>
+    
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 15:45</span>
+        </div>
+        <div class="event-title">S5 - Application Maintenance Vue Constructeur - TD2</div>
+        <div class="event-room">📍 salle TD-BREGUET</div>
+        
+    </div>
+    </div><div class="slot-row split-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">15:45 - 17:45</span>
+        </div>
+        <div class="event-title">S5 - Application Maintenance Vue Constructeur - TD1</div>
+        <div class="event-room">📍 salle TD-BREGUET</div>
+        
+    </div>
+    
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">15:45 - 17:45</span>
+        </div>
+        <div class="event-title">S5 - Techniques Digitales - TD2</div>
+        <div class="event-room">📍 SALLE TD-BLOCH</div>
+        <div class="event-teacher">👤 ABDERAHMANE Abdellahi</div>
+    </div>
+    </div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Vendredi 16/10</div>
+                <div class="events-container">
+            <div class="slot-row split-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">08:30 - 10:30</span>
+        </div>
+        <div class="event-title">S5 - Techno générale, CAO, CATIA - TD1</div>
+        <div class="event-room">📍 salle TD-BREGUET</div>
+        <div class="event-teacher">👤 VELAIDON Rene</div>
+    </div>
+    
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">08:30 - 10:30</span>
+        </div>
+        <div class="event-title">S6 - Communication - TD2</div>
+        <div class="event-room">📍 SALLE TD-BLOCH</div>
+        
+    </div>
+    </div><div class="slot-row split-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">10:30 - 12:30</span>
+        </div>
+        <div class="event-title">S6 - Communication - TD1</div>
+        <div class="event-room">📍 SALLE TD-BLOCH</div>
+        
+    </div>
+    
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">10:30 - 12:30</span>
+        </div>
+        <div class="event-title">S5 - Techno générale, CAO, CATIA - TD2</div>
+        <div class="event-room">📍 salle INFO-BLAISE PASCAL</div>
+        <div class="event-teacher">👤 VELAIDON Rene</div>
+    </div>
+    </div></div></div></div></div>
+        <div class="slide " id="slide-1">
+            <h2>Planning Semaine — <span class="highlight">BUT 3 SNRV</span></h2>
+            <div class="week-grid">
+        
+            <div class="day-column ">
+                <div class="day-header">Lundi 12/10</div>
+                <div class="events-container">
+            <div class="no-event">Aucun cours</div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Mardi 13/10</div>
+                <div class="events-container">
+            <div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 14:45</span>
+        </div>
+        <div class="event-title">R5.02 DDS - Cours</div>
+        <div class="event-room">📍 SALLE TD-VINCI</div>
+        <div class="event-teacher">👤 MOYSAN Joseph</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">14:45 - 15:45</span>
+        </div>
+        <div class="event-title">R5.02 DDS - Cours</div>
+        <div class="event-room">📍 SALLE TD-VINCI</div>
+        <div class="event-teacher">👤 MOYSAN Joseph</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">15:45 - 17:45</span>
+        </div>
+        <div class="event-title">R5.05 Construction Hydrau - TD</div>
+        <div class="event-room">📍 SALLE TD-VINCI</div>
+        <div class="event-teacher">👤 MOYSAN Joseph</div>
+    </div>
+    </div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Mercredi 14/10</div>
+                <div class="events-container">
+            <div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">08:30 - 12:30</span>
+        </div>
+        <div class="event-title">TD R5.A.13.3 4h</div>
+        <div class="event-room">📍 SALLE INFO-ST EXUPERY</div>
+        <div class="event-teacher">👤 CONTUDENA Adrien</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 15:45</span>
+        </div>
+        <div class="event-title">C R5.A.13.3 RV</div>
+        <div class="event-room">📍 SALLE INFO-ST EXUPERY</div>
+        <div class="event-teacher">👤 CONTUDENA Adrien</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">17:00 - 19:00</span>
+        </div>
+        <div class="event-title">CONSEIL DEPARTEMENT GMP</div>
+        <div class="event-room">📍 </div>
+        
+    </div>
+    </div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Jeudi 15/10</div>
+                <div class="events-container">
+            <div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">09:30 - 10:30</span>
+        </div>
+        <div class="event-title">R5.06 Production CN Complexe 2 - Cours</div>
+        <div class="event-room">📍 SALLE TD-VINCI</div>
+        <div class="event-teacher">👤 MAILHE Jean</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">10:30 - 12:30</span>
+        </div>
+        <div class="event-title">R5.06 Production CAO 2 - TD</div>
+        <div class="event-room">📍 salle INFO-BLAISE PASCAL</div>
+        <div class="event-teacher">👤 MAILHE Jean</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 15:45</span>
+        </div>
+        <div class="event-title">R5.06 Production CAO 2 - TD</div>
+        <div class="event-room">📍 salle INFO-BLAISE PASCAL</div>
+        <div class="event-teacher">👤 MAILHE Jean</div>
+    </div>
+    </div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Vendredi 16/10</div>
+                <div class="events-container">
+            <div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">08:30 - 12:30</span>
+        </div>
+        <div class="event-title">TD R5.A.13.3 4h</div>
+        <div class="event-room">📍 SALLE INFO-ST EXUPERY</div>
+        <div class="event-teacher">👤 CONTUDENA Adrien</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 15:45</span>
+        </div>
+        <div class="event-title">R5.06 Production CAO 1 - TD</div>
+        <div class="event-room">📍 salle INFO-BLAISE PASCAL</div>
+        <div class="event-teacher">👤 Visio Salle</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">15:45 - 17:45</span>
+        </div>
+        <div class="event-title">R5.01 Mécanique - TD</div>
+        <div class="event-room">📍 SALLE TD-VINCI</div>
+        <div class="event-teacher">👤 Visio Salle</div>
+    </div>
+    </div></div></div></div></div>
+        <div class="slide " id="slide-2">
+            <h2>Planning Semaine — <span class="highlight">M1 MPAD</span></h2>
+            <div class="week-grid">
+        
+            <div class="day-column ">
+                <div class="day-header">Lundi 12/10</div>
+                <div class="events-container">
+            <div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">08:30 - 12:30</span>
+        </div>
+        <div class="event-title">Presentations des technos Polyaero</div>
+        <div class="event-room">📍 Amphi Polyaéro</div>
+        
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 14:45</span>
+        </div>
+        <div class="event-title">ECUE 3,12 - XR et IA  PAS CM</div>
+        <div class="event-room">📍 SALLE TD-ADER</div>
+        
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">14:45 - 16:45</span>
+        </div>
+        <div class="event-title">ECUE 3,12 - XR et IA TD PAS</div>
+        <div class="event-room">📍 SALLE TD-ADER</div>
+        
+    </div>
+    </div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Mardi 13/10</div>
+                <div class="events-container">
+            <div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">08:30 - 10:30</span>
+        </div>
+        <div class="event-title">ECUE 4,11 - Gest. projet CM</div>
+        <div class="event-room">📍 SALLE TD-ADER</div>
+        <div class="event-teacher">👤 PAGNIER Mickael</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">10:30 - 12:30</span>
+        </div>
+        <div class="event-title">ECUE 4,11 - Gest. projet CM</div>
+        <div class="event-room">📍 SALLE TD-ADER</div>
+        <div class="event-teacher">👤 PAGNIER Mickael</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 16:45</span>
+        </div>
+        <div class="event-title">Presentations des technos Polyaero</div>
+        <div class="event-room">📍 SALLE TD-ADER</div>
+        
+    </div>
+    </div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Mercredi 14/10</div>
+                <div class="events-container">
+            <div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">08:30 - 10:30</span>
+        </div>
+        <div class="event-title">ECUE 3,12 - XR et IA  PAS CM</div>
+        <div class="event-room">📍 SALLE TD-ADER</div>
+        
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">10:30 - 12:30</span>
+        </div>
+        <div class="event-title">ECUE 3,12 - XR et IA TD PAS</div>
+        <div class="event-room">📍 SALLE TD-ADER</div>
+        
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 15:45</span>
+        </div>
+        <div class="event-title">ECUE 3,12 - XR et IA TD PAS</div>
+        <div class="event-room">📍 SALLE TD-ADER</div>
+        
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">15:45 - 16:45</span>
+        </div>
+        <div class="event-title">ECUE 3,12 - XR et IA PAS EXAM</div>
+        <div class="event-room">📍 SALLE TD-ADER</div>
+        
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">17:00 - 19:00</span>
+        </div>
+        <div class="event-title">CONSEIL DEPARTEMENT GMP</div>
+        <div class="event-room">📍 </div>
+        
+    </div>
+    </div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Jeudi 15/10</div>
+                <div class="events-container">
+            <div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 15:45</span>
+        </div>
+        <div class="event-title">ECUE 2,11 - Conception 3D TD</div>
+        <div class="event-room">📍 SALLE INFO-ST EXUPERY</div>
+        <div class="event-teacher">👤 VELAIDON Rene</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">15:45 - 16:45</span>
+        </div>
+        <div class="event-title">ECUE 2,11 - Conception 3D CM</div>
+        <div class="event-room">📍 SALLE INFO-ST EXUPERY</div>
+        <div class="event-teacher">👤 VELAIDON Rene</div>
+    </div>
+    </div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Vendredi 16/10</div>
+                <div class="events-container">
+            <div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 15:45</span>
+        </div>
+        <div class="event-title">ECUE 1,11 - Géopo Eco Int CM AKI</div>
+        <div class="event-room">📍 SALLE TD-ADER</div>
+        <div class="event-teacher">👤 AKIMOWICZ Mikael</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">15:45 - 16:45</span>
+        </div>
+        <div class="event-title">ECUE 1,11 - Géopo Eco Int CM AKI</div>
+        <div class="event-room">📍 SALLE TD-ADER</div>
+        <div class="event-teacher">👤 AKIMOWICZ Mikael</div>
+    </div>
+    </div></div></div></div></div>
+        <div class="slide " id="slide-3">
+            <h2>Planning Semaine — <span class="highlight">M2 MPAD</span></h2>
+            <div class="week-grid">
+        
+            <div class="day-column ">
+                <div class="day-header">Lundi 12/10</div>
+                <div class="events-container">
+            <div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">09:00 - 11:00</span>
+        </div>
+        <div class="event-title">ECUE 3.34 - XR - IA CM</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        <div class="event-teacher">👤 ABDERAHMANE Abdellahi</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">11:00 - 11:30</span>
+        </div>
+        <div class="event-title">ECUE 3.34 - XR - IA CM</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        <div class="event-teacher">👤 ABDERAHMANE Abdellahi</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">11:30 - 12:30</span>
+        </div>
+        <div class="event-title">ECUE 3.34 - XR - IA CM</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        <div class="event-teacher">👤 ABDERAHMANE Abdellahi</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 15:45</span>
+        </div>
+        <div class="event-title">ECUE 4.42 - Dév pers Mim CM</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        <div class="event-teacher">👤 MIMENZA Helene</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">15:45 - 16:45</span>
+        </div>
+        <div class="event-title">ECUE 4.42 - Dév pers Mim TD</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        <div class="event-teacher">👤 MIMENZA Helene</div>
+    </div>
+    </div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Mardi 13/10</div>
+                <div class="events-container">
+            <div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">08:30 - 10:30</span>
+        </div>
+        <div class="event-title">ECUE 2.32 - Mat. Fab Add MOY CM</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        <div class="event-teacher">👤 MOYSAN Joseph</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">10:30 - 12:30</span>
+        </div>
+        <div class="event-title">ECUE 2.32 - Mat. Fab Add  MOY TD</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        <div class="event-teacher">👤 MOYSAN Joseph</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 15:45</span>
+        </div>
+        <div class="event-title">ECUE 3.41 - Pilot Perf BRQ CM</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        <div class="event-teacher">👤 BROQUET Mylene</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">15:45 - 17:45</span>
+        </div>
+        <div class="event-title">ECUE 3.41 - Pilot Perf BRQ TD</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        <div class="event-teacher">👤 BROQUET Mylene</div>
+    </div>
+    </div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Mercredi 14/10</div>
+                <div class="events-container">
+            <div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">09:00 - 11:00</span>
+        </div>
+        <div class="event-title">ECUE 3.34 - XR - IA TD</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">11:00 - 11:30</span>
+        </div>
+        <div class="event-title">ECUE 3.34 - XR - IA TD</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">11:30 - 12:30</span>
+        </div>
+        <div class="event-title">ECUE 3.34 - XR - IA EXAM</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 15:45</span>
+        </div>
+        <div class="event-title">ECUE 3.41 - Pilot Perf BRQ CM</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        <div class="event-teacher">👤 BROQUET Mylene</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">17:00 - 19:00</span>
+        </div>
+        <div class="event-title">CONSEIL DEPARTEMENT GMP</div>
+        <div class="event-room">📍 </div>
+        
+    </div>
+    </div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Jeudi 15/10</div>
+                <div class="events-container">
+            <div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">08:30 - 10:30</span>
+        </div>
+        <div class="event-title">ECUE 1.33 - Regl. aéro. DAR  TD</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        <div class="event-teacher">👤 D'ARLHAC Christophe</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">10:30 - 12:30</span>
+        </div>
+        <div class="event-title">ECUE 1.33 - Regl. aéro. DAR  TD</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        <div class="event-teacher">👤 D'ARLHAC Christophe</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">13:45 - 15:45</span>
+        </div>
+        <div class="event-title">ECUE 1.33 - Regl. aéro. DAR  TD</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        <div class="event-teacher">👤 D'ARLHAC Christophe</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">15:45 - 16:45</span>
+        </div>
+        <div class="event-title">ECUE 1.33 - Regl. aéro. DAR CM</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        <div class="event-teacher">👤 D'ARLHAC Christophe</div>
+    </div>
+    </div></div></div>
+            <div class="day-column ">
+                <div class="day-header">Vendredi 16/10</div>
+                <div class="events-container">
+            <div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">08:30 - 10:30</span>
+        </div>
+        <div class="event-title">ECUE 1.31 - Géopo Eco Int CM AKI</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        <div class="event-teacher">👤 AKIMOWICZ Mikael</div>
+    </div>
+    </div><div class="slot-row promo-slot">
+    <div class="event-card">
+        <div class="event-header">
+            <span class="event-time">10:30 - 12:30</span>
+        </div>
+        <div class="event-title">ECUE 1.31 - Géopo Eco Int CM AKI</div>
+        <div class="event-room">📍 SALLE TD-PITOT</div>
+        <div class="event-teacher">👤 AKIMOWICZ Mikael</div>
+    </div>
+    </div></div></div></div></div>
+    <div class="slide" id="slide-4">
+        <h2>Aujourd'hui à Polyaéro — <span class="highlight">Samedi 17 octobre 2026</span></h2>
+        <div class="today-grid">
+    
+        <div class="today-column">
+            <div class="promo-header">LP MIA</div>
+            <div class="events-container">
+        <div class="no-event">Pas de cours aujourd'hui</div></div></div>
+        <div class="today-column">
+            <div class="promo-header">BUT 3 SNRV</div>
+            <div class="events-container">
+        <div class="no-event">Pas de cours aujourd'hui</div></div></div>
+        <div class="today-column">
+            <div class="promo-header">M1 MPAD</div>
+            <div class="events-container">
+        <div class="no-event">Pas de cours aujourd'hui</div></div></div>
+        <div class="today-column">
+            <div class="promo-header">M2 MPAD</div>
+            <div class="events-container">
+        <div class="no-event">Pas de cours aujourd'hui</div></div></div></div></div>
+    </main>
+
+    <footer>
+        <div id="progress-bar"></div>
+    </footer>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('fr-FR');
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        const totalSlides = 5;
+        const duration = 5 * 1000;
+        let currentSlide = 0;
+        let startTime = Date.now();
+
+        function switchSlide() {
+            document.getElementById(`slide-${currentSlide}`).classList.remove('active');
+            currentSlide = (currentSlide + 1) % totalSlides;
+            document.getElementById(`slide-${currentSlide}`).classList.add('active');
+            startTime = Date.now();
+        }
+
+        function updateProgressBar() {
+            const elapsed = Date.now() - startTime;
+            const percentage = Math.min((elapsed / duration) * 100, 100);
+            document.getElementById('progress-bar').style.width = percentage + '%';
+
+            if (elapsed >= duration) {
+                switchSlide();
+            }
+        }
+
+        setInterval(updateProgressBar, 100);
+    </script>
+</body>
+</html>
