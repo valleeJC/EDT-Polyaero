@@ -2,7 +2,7 @@ name: Actualisation de l'Emploi du Temps
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # Toutes les 30 minutes (GitHub peut décaler de quelques minutes)
+    - cron: '0 4 * * *'  # Une fois par jour à 4h UTC (5h en hiver, 6h en été) ; GitHub peut décaler l'exécution
   workflow_dispatch:         # Lancement manuel
 
 permissions:

@@ -205,7 +205,7 @@ body.clair .bloc.encours .interieur { background: #e0f2fe; box-shadow: inset 0 0
   var LARGEUR = 1920, HAUTEUR = 1080;
   var JOUR_MS = 86400000;
   var RELECTURE_DONNEES_MS = 5 * 60 * 1000;   // relit data.js toutes les 5 min
-  var ALERTE_DONNEES_MS = 3 * 3600 * 1000;    // données plus vieilles que 3 h : avertissement
+  var ALERTE_DONNEES_MS = 30 * 3600 * 1000;   // mise à jour quotidienne : avertissement au-delà de 30 h
   var HEURE_BASCULE_LENDEMAIN = 19;           // après 19 h, la diapo "jour" montre le lendemain
   var JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
   var MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
@@ -612,7 +612,7 @@ body.clair .bloc.encours .interieur { background: #e0f2fe; box-shadow: inset 0 0
       st.textContent = "Emploi du temps non actualisé depuis le " + dateCourte(DONNEES.genere);
     } else {
       st.className = "";
-      st.textContent = "Mis à jour à " + hhmm(DONNEES.genere);
+      st.textContent = "Mis à jour le " + dateCourte(DONNEES.genere).replace(" ", " à ");
     }
   }
 
