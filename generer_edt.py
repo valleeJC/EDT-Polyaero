@@ -42,7 +42,7 @@ PROMOTIONS = [
 # Durées d'affichage des diapositives (secondes), transmises à la page
 DUREE_DIAPO_JOUR = 12
 DUREE_DIAPO_SEMAINE = 12
-DUREE_DIAPO_SEMAINE_VIDE = 4   # promo sans cours de la semaine
+DUREE_DIAPO_SEMAINE_VIDE = 2  # promo sans cours de la semaine
 
 # Événements ADE qui ne sont pas des cours (période en entreprise...) : ignorés
 MOTS_SANS_COURS = ["entreprise"]
