@@ -1,0 +1,9 @@
+﻿cache/
+.venv/
+.idea/
+__pycache__/
+_github_ref/
+.claude/
+# anciennes versions locales (avant la refonte)
+/main.py
+/index.html

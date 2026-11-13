@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Polyaéro – Emploi du temps</title>
+<!--
+  Affichage TV de l'emploi du temps Polyaéro.
+  - Toute la mise en page est dessinée sur un canevas fixe de 1920x1080, mis à l'échelle
+    de l'écran : le rendu est identique quelle que soit la résolution annoncée par la TV.
+  - JavaScript ES5 uniquement et CSS sans grid / gap / variables : compatible avec les
+    navigateurs intégrés des TV (Tizen, webOS, Android TV anciens).
+  - Les données viennent de data.js (généré par generer_edt.py), relu toutes les 5 minutes.
+  Paramètres d'URL utiles pour tester : ?debug=1  ?maintenant=2026-11-16T10:15
+-->
+<style>
+html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0b1220; }
+body { font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #f1f5f9; }
+* { box-sizing: border-box; }
+
+#scene { position: absolute; left: 50%; top: 50%; width: 1920px; height: 1080px; overflow: hidden;
+  -webkit-transform-origin: 50% 50%; transform-origin: 50% 50%; background: #0b1220; }
+
+/* ---------- En-tête ---------- */
+#entete { position: absolute; left: 0; top: 0; width: 1920px; height: 120px; padding: 0 40px;
+  background: #111a2e; border-bottom: 3px solid #1e2a44; display: flex; align-items: center; }
+#marque { width: 460px; }
+#marque .nom { font-size: 40px; font-weight: 800; letter-spacing: 2px; color: #ffffff; line-height: 1; }
+#marque .sous { font-size: 22px; color: #8aa0c4; margin-top: 8px; letter-spacing: 1px; }
+#titre-diapo { flex: 1; text-align: center; font-size: 38px; font-weight: 700; color: #ffffff; white-space: nowrap; overflow: hidden; }
+#titre-diapo .accent { color: #38bdf8; }
+#horloge-bloc { width: 460px; text-align: right; }
+#horloge { font-size: 64px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+#date-jour { font-size: 22px; color: #8aa0c4; margin-top: 6px; }
+
+/* ---------- Contenu ---------- */
+#contenu { position: absolute; left: 0; top: 120px; width: 1920px; height: 900px; padding: 24px 32px 16px; }
+.diapo { position: absolute; left: 32px; top: 24px; width: 1856px; height: 860px; display: none; }
+.diapo.active { display: block; }
+
+/* ---------- Pied de page ---------- */
+#pied { position: absolute; left: 0; bottom: 0; width: 1920px; height: 60px; background: #111a2e;
+  border-top: 3px solid #1e2a44; display: flex; align-items: center; padding: 0 32px; }
+#onglets { flex: 1; display: flex; height: 36px; }
+.onglet { position: relative; height: 36px; line-height: 36px; padding: 0 22px; margin-right: 10px; border-radius: 18px;
+  background: #1a2540; color: #8aa0c4; font-size: 20px; font-weight: 600; overflow: hidden; white-space: nowrap; }
+.onglet .remplissage { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: #23406b; }
+.onglet .texte { position: relative; }
+.onglet.active { color: #ffffff; }
+#statut { font-size: 18px; color: #64748b; white-space: nowrap; }
+#statut.alerte { color: #fbbf24; font-weight: 600; }
+#bouton-theme { margin-left: 20px; height: 36px; padding: 0 18px; border-radius: 18px; border: 2px solid #2b3a5c;
+  background: #1a2540; color: #cbd5e1; font: 600 18px "Segoe UI", Roboto, Arial, sans-serif; cursor: pointer; }
+
+/* ---------- Diapo "jour" : une colonne par promo ---------- */
+.colonnes { display: flex; height: 860px; }
+.colonne { flex: 1; margin-right: 20px; background: #111a2e; border-radius: 14px; border-top: 8px solid #38bdf8;
+  padding: 14px 14px 10px; overflow: hidden; position: relative; }
+.colonne:last-child { margin-right: 0; }
+.colonne .tete { font-size: 32px; font-weight: 800; margin-bottom: 12px; white-space: nowrap; }
+.colonne .tete .note { font-size: 16px; font-weight: 400; color: #fbbf24; margin-left: 8px; }
+.liste { position: relative; }
+.rangee { display: flex; margin-bottom: 10px; }
+/* les voies d'une rangée s'étirent à la même hauteur, et leurs cartes avec */
+.voie { flex: 1; margin-right: 8px; min-width: 0; display: flex; flex-direction: column; }
+.voie .carte { flex: 1 1 auto; }
+.voie:last-child { margin-right: 0; }
+.vide { color: #5b6b88; font-size: 26px; font-style: italic; text-align: center; padding-top: 60px; }
+.resume-passe { color: #5b6b88; font-size: 20px; margin-bottom: 10px; padding-left: 4px; }
+
+.carte { background: #1a2540; border-radius: 10px; padding: 12px 14px; border-left: 6px solid #38bdf8; margin-bottom: 10px; position: relative; overflow: hidden; }
+.voie .carte:last-child { margin-bottom: 0; }
+.carte .heure { font-size: 24px; font-weight: 700; color: #cbd5e1; font-variant-numeric: tabular-nums; }
+.carte .titre { font-size: 27px; font-weight: 700; color: #ffffff; line-height: 1.15; margin: 4px 0 6px;
+  max-height: 62px; overflow: hidden; }
+.carte .infos { font-size: 21px; color: #a9b8d3; line-height: 1.3; }
+.carte .profs { font-size: 20px; color: #8aa0c4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.etiquette { display: inline-block; font-size: 17px; font-weight: 700; padding: 1px 8px; border-radius: 6px; margin-right: 6px;
+  background: #2b3a5c; color: #dbe7ff; vertical-align: 2px; }
+.etiquette.CM { background: #1e3a5f; color: #93c5fd; }
+.etiquette.TD { background: #3b2f5c; color: #c4b5fd; }
+.etiquette.TP { background: #1f4a3d; color: #6ee7b7; }
+.etiquette.Examen { background: #5c2626; color: #fca5a5; }
+.etiquette.groupe { background: #4a3b1a; color: #fcd34d; }
+.etat { position: absolute; right: 10px; top: 10px; font-size: 16px; font-weight: 800; letter-spacing: 1px; padding: 2px 8px; border-radius: 6px; }
+.carte.encours { background: #20325a; box-shadow: 0 0 0 3px #38bdf8; }
+.carte.encours .etat { background: #38bdf8; color: #0b1220; }
+.carte.suivant .etat { background: #2b3a5c; color: #cbd5e1; }
+.carte.passe { opacity: 0.38; }
+.avancement { position: absolute; left: 0; bottom: 0; height: 5px; background: #38bdf8; }
+.bandeau { background: #2b3a5c; border-radius: 10px; padding: 10px 14px; font-size: 22px; font-weight: 600; margin-bottom: 10px; color: #dbe7ff; }
+
+/* Cartes côte à côte (TD1 / TD2 en parallèle) : plus compactes */
+.rangee.multi .carte { padding: 10px 10px; }
+.rangee.multi .carte .heure { font-size: 20px; }
+.rangee.multi .carte .titre { font-size: 22px; max-height: 51px; }
+.rangee.multi .carte .infos { font-size: 18px; }
+.rangee.multi .carte .profs { font-size: 17px; }
+.rangee.multi .etat { position: static; display: inline-block; margin-bottom: 4px; }
+/* Colonne trop remplie : mode compact */
+.colonne.compacte .carte { padding: 8px 12px; margin-bottom: 8px; }
+.colonne.compacte .carte .titre { font-size: 23px; max-height: 27px; margin: 2px 0 3px; }
+.colonne.compacte .carte .profs { display: none; }
+.colonne.compacte .rangee { margin-bottom: 8px; }
+
+/* ---------- Diapo "semaine" : grille horaire ---------- */
+.semaine { position: relative; height: 860px; }
+.axe { position: absolute; left: 0; top: 0; width: 70px; height: 860px; }
+.axe .h { position: absolute; right: 10px; font-size: 18px; color: #64748b; font-variant-numeric: tabular-nums; }
+.jour { position: absolute; top: 0; height: 860px; background: #111a2e; border-radius: 12px; overflow: hidden; }
+.jour .tetejour { height: 56px; line-height: 56px; text-align: center; font-size: 26px; font-weight: 700; color: #a9b8d3; border-bottom: 2px solid #1e2a44; }
+.jour.aujourdhui { box-shadow: inset 0 0 0 3px #38bdf8; }
+.jour.aujourdhui .tetejour { color: #38bdf8; }
+.jour.ecoule .corps { opacity: 0.45; }
+.corps { position: absolute; left: 0; right: 0; bottom: 0; }
+.ligneh { position: absolute; left: 0; right: 0; height: 1px; background: #1a2540; }
+.maintenant { position: absolute; left: 0; right: 0; height: 3px; background: #f43f5e; z-index: 5; }
+.maintenant:before { content: ""; position: absolute; left: -6px; top: -5px; width: 13px; height: 13px; border-radius: 7px; background: #f43f5e; }
+.bloc { position: absolute; padding: 0 3px; }
+.bloc .interieur { height: 100%; background: #1f2d4d; border-left: 5px solid #38bdf8; border-radius: 7px; padding: 5px 8px; overflow: hidden; }
+.bloc .heure { font-size: 17px; font-weight: 700; color: #a9b8d3; white-space: nowrap; }
+.bloc .titre { font-size: 20px; font-weight: 700; color: #ffffff; line-height: 1.15; max-height: 46px; overflow: hidden; }
+.bloc .infos { font-size: 16px; color: #a9b8d3; line-height: 1.25; margin-top: 3px; }
+.bloc .prof { font-size: 16px; color: #8aa0c4; line-height: 1.25; margin-top: 1px; }
+.bloc .etiquette { font-size: 14px; padding: 0 6px; margin-right: 4px; vertical-align: 1px; }
+/* demi-groupes côte à côte : texte un peu plus petit */
+.bloc.demi .interieur { padding: 4px 6px; }
+.bloc.demi .heure { font-size: 15px; }
+.bloc.demi .titre { font-size: 17px; max-height: 40px; }
+.bloc.demi .infos, .bloc.demi .prof { font-size: 14px; }
+.bloc.demi .etiquette { font-size: 12px; padding: 0 4px; margin-right: 3px; }
+/* ajustements successifs si le texte déborde encore (voir ajusterBlocs) */
+.bloc.serre .titre { max-height: 20px; white-space: nowrap; text-overflow: ellipsis; }
+.bloc.serre.demi .titre { max-height: 20px; }
+.bloc.sans-etiquette .etiquette { display: none; }
+.bloc.sans-heure .heure { display: none; }
+.bloc.sans-prof .prof { display: none; }
+.bloc.mini .interieur { padding: 2px 8px; }
+.bloc.mini .heure { display: none; }
+.bloc.mini .titre { font-size: 17px; white-space: nowrap; text-overflow: ellipsis; }
+.bloc.mini .infos, .bloc.mini .prof { display: none; }
+.bloc.encours .interieur { background: #20325a; box-shadow: inset 0 0 0 2px #38bdf8; }
+.bandeau-jour { position: absolute; left: 6px; right: 6px; z-index: 4; background: #2b3a5c; border-radius: 8px; padding: 4px 10px; font-size: 18px; font-weight: 700; color: #dbe7ff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.semaine-vide { position: absolute; left: 0; right: 0; top: 340px; text-align: center; font-size: 36px; color: #5b6b88; font-style: italic; }
+
+/* ---------- Messages ---------- */
+#message { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; display: none; text-align: center; padding-top: 420px; font-size: 44px; color: #8aa0c4; background: #0b1220; z-index: 20; }
+/* ---------- Thème clair (bouton en bas à droite, ou ?theme=clair dans l'URL) ---------- */
+body.clair, body.clair #scene, body.clair #message { background: #eef2f7; color: #0f172a; }
+body.clair #entete, body.clair #pied { background: #ffffff; border-color: #d5dde8; }
+body.clair #marque .nom, body.clair #titre-diapo, body.clair #horloge { color: #0f172a; }
+body.clair #marque .sous, body.clair #date-jour { color: #5b6b88; }
+body.clair #titre-diapo .accent { color: #0284c7; }
+body.clair #titre-diapo span[style] { color: #0f172a !important; }
+body.clair .onglet { background: #e2e8f0; color: #475569; }
+body.clair .onglet.active { color: #0f172a; }
+body.clair .onglet .remplissage { background: #bfdbfe; }
+body.clair #statut.alerte { color: #b45309; }
+body.clair #bouton-theme { background: #e2e8f0; border-color: #cbd5e1; color: #334155; }
+body.clair .colonne, body.clair .jour { background: #ffffff; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12); }
+body.clair .colonne .tete { color: #0f172a !important; }
+body.clair .carte { background: #f1f5f9; }
+body.clair .carte .heure { color: #334155; }
+body.clair .carte .titre, body.clair .bloc .titre { color: #0f172a; }
+body.clair .carte .infos, body.clair .bloc .infos, body.clair .bloc .heure { color: #475569; }
+body.clair .carte .profs, body.clair .bloc .prof { color: #64748b; }
+body.clair .carte.encours { background: #e0f2fe; box-shadow: 0 0 0 3px #0284c7; }
+body.clair .carte.encours .etat { background: #0284c7; color: #ffffff; }
+body.clair .carte.suivant .etat { background: #e2e8f0; color: #334155; }
+body.clair .vide, body.clair .resume-passe, body.clair .semaine-vide { color: #94a3b8; }
+body.clair .etiquette { background: #e2e8f0; color: #334155; }
+body.clair .etiquette.CM { background: #dbeafe; color: #1d4ed8; }
+body.clair .etiquette.TD { background: #ede9fe; color: #6d28d9; }
+body.clair .etiquette.TP { background: #d1fae5; color: #047857; }
+body.clair .etiquette.Examen { background: #fee2e2; color: #b91c1c; }
+body.clair .etiquette.groupe { background: #fef3c7; color: #b45309; }
+body.clair .bandeau, body.clair .bandeau-jour { background: #e2e8f0; color: #1e293b; }
+body.clair .jour .tetejour { color: #475569; border-color: #e2e8f0; }
+body.clair .jour.aujourdhui { box-shadow: inset 0 0 0 3px #0284c7; }
+body.clair .jour.aujourdhui .tetejour { color: #0284c7; }
+body.clair .ligneh { background: #e5e9f0; }
+body.clair .bloc .interieur { background: #f1f5f9; }
+body.clair .bloc.encours .interieur { background: #e0f2fe; box-shadow: inset 0 0 0 2px #0284c7; }
+
+#debug { position: fixed; left: 8px; bottom: 8px; z-index: 50; background: rgba(0,0,0,0.85); color: #0f0; font: 14px monospace; padding: 8px; display: none; white-space: pre; }
+</style>
+</head>
+<body>
+<div id="scene">
+  <div id="entete">
+    <div id="marque"><div class="nom">POLYAÉRO</div><div class="sous">EMPLOI DU TEMPS · TALLARD</div></div>
+    <div id="titre-diapo"></div>
+    <div id="horloge-bloc"><div id="horloge">--:--</div><div id="date-jour"></div></div>
+  </div>
+  <div id="contenu"></div>
+  <div id="pied"><div id="onglets"></div><div id="statut"></div><button id="bouton-theme" type="button">Mode clair</button></div>
+  <div id="message">Chargement de l'emploi du temps…</div>
+</div>
+<div id="debug"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var LARGEUR = 1920, HAUTEUR = 1080;
+  var JOUR_MS = 86400000;
+  var RELECTURE_DONNEES_MS = 5 * 60 * 1000;   // relit data.js toutes les 5 min
+  var ALERTE_DONNEES_MS = 3 * 3600 * 1000;    // données plus vieilles que 3 h : avertissement
+  var HEURE_BASCULE_LENDEMAIN = 19;           // après 19 h, la diapo "jour" montre le lendemain
+  var JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+  var MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+
+  var params = lireParametres();
+  var DONNEES = null;
+  var derniereLectureOk = 0;
+  var diapos = [];          // [{ cle, onglet, titreHtml, element, duree }]
+  var indexDiapo = 0;
+  var debutDiapo = Date.now();
+  // ?maintenant=2026-11-16T10:15 : simule une autre date/heure (heure de Paris)
+  var decalageSimulation = 0;
+
+  // ------------------------------------------------------------------ outils
+
+  function lireParametres() {
+    var res = {}, q = window.location.search.replace(/^\?/, "").split("&");
+    for (var i = 0; i < q.length; i++) {
+      if (!q[i]) continue;
+      var kv = q[i].split("=");
+      res[decodeURIComponent(kv[0])] = decodeURIComponent((kv[1] || "").replace(/\+/g, " "));
+    }
+    return res;
+  }
+
+  function $(id) { return document.getElementById(id); }
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function decalageParis() { return DONNEES ? DONNEES.decalageParis : 3600000; }
+  function maintenant() { return Date.now() + decalageSimulation; }
+
+  // Date "murale" de Paris : on lit les champs UTC d'une date décalée
+  // (indépendant du fuseau horaire réglé sur la TV).
+  function paris(ms) { return new Date(ms + decalageParis()); }
+  function numeroJour(ms) { return Math.floor((ms + decalageParis()) / JOUR_MS); }
+  function jourSemaine(num) { return new Date(num * JOUR_MS).getUTCDay(); }
+  function lundiDe(num) { return num - ((jourSemaine(num) + 6) % 7); }
+  function debutJourMs(num) { return num * JOUR_MS - decalageParis(); }
+  function minutesDuJour(ms) { var d = paris(ms); return d.getUTCHours() * 60 + d.getUTCMinutes(); }
+  function deuxChiffres(n) { return (n < 10 ? "0" : "") + n; }
+  function hhmm(ms) { var d = paris(ms); return deuxChiffres(d.getUTCHours()) + ":" + deuxChiffres(d.getUTCMinutes()); }
+  function hhmmCourt(ms) { var d = paris(ms); return d.getUTCHours() + "h" + (d.getUTCMinutes() ? deuxChiffres(d.getUTCMinutes()) : ""); }
+  function dateLongue(num) { var d = new Date(num * JOUR_MS); return JOURS[d.getUTCDay()] + " " + d.getUTCDate() + " " + MOIS[d.getUTCMonth()]; }
+  function majuscule(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+  function parisVersUtc(texte) {
+    // "2026-11-16T10:15" interprété comme heure de Paris
+    var m = /^(\d{4})-(\d\d)-(\d\d)(?:[T ](\d\d):(\d\d))?/.exec(texte);
+    if (!m) return null;
+    return Date.UTC(+m[1], +m[2] - 1, +m[3], +(m[4] || 8), +(m[5] || 0)) - decalageParis();
+  }
+
+  // ------------------------------------------------------------------ mise à l'échelle
+
+  function ajusterEchelle() {
+    var w = window.innerWidth || document.documentElement.clientWidth;
+    var h = window.innerHeight || document.documentElement.clientHeight;
+    var e = Math.min(w / LARGEUR, h / HAUTEUR);
+    var t = "translate(-50%, -50%) scale(" + e + ")";
+    var s = $("scene").style;
+    s.webkitTransform = t; s.msTransform = t; s.transform = t;
+    majDebug(w, h, e);
+  }
+
+  function majDebug(w, h, e) {
+    if (!params.debug) return;
+    var d = $("debug");
+    d.style.display = "block";
+    d.textContent = "fenêtre " + w + "x" + h + "  ratio pixels " + (window.devicePixelRatio || 1) +
+      "  échelle " + e.toFixed(3) + "\n" + navigator.userAgent +
+      "\ndonnées : " + (DONNEES ? new Date(DONNEES.genere).toLocaleString() : "aucune");
+  }
+
+  // ------------------------------------------------------------------ données
+
+  function chargerDonnees() {
+    var ancien = document.getElementById("script-donnees");
+    if (ancien) ancien.parentNode.removeChild(ancien);
+    var s = document.createElement("script");
+    s.id = "script-donnees";
+    s.src = "data.js?t=" + Date.now();
+    s.onload = function () {
+      if (window.EDT_DATA && window.EDT_DATA.promos) {
+        var premier = !DONNEES;
+        DONNEES = window.EDT_DATA;
+        derniereLectureOk = Date.now();
+        if (premier && params.maintenant) {
+          var t = parisVersUtc(params.maintenant);
+          if (t !== null) decalageSimulation = t - Date.now();
+        }
+        construireDiapos();
+      }
+    };
+    s.onerror = function () { majStatut(); };  // on garde les données déjà affichées
+    document.getElementsByTagName("head")[0].appendChild(s);
+  }
+
+  // Jour montré par la diapo "jour" : aujourd'hui, ou le prochain jour ouvré le soir / le week-end
+  function jourReference() {
+    var t = maintenant(), num = numeroJour(t), libelle = "Aujourd'hui";
+    if (paris(t).getUTCHours() >= HEURE_BASCULE_LENDEMAIN) { num++; libelle = "Demain"; }
+    while (jourSemaine(num) === 0 || jourSemaine(num) === 6) { num++; libelle = null; }
+    if (libelle === "Demain" && num !== numeroJour(t) + 1) libelle = null;
+    return { num: num, libelle: libelle || majuscule(JOURS[jourSemaine(num)]) };
+  }
+
+  function evenementsDuJour(promo, num) {
+    var res = [];
+    for (var i = 0; i < promo.evenements.length; i++) {
+      var ev = promo.evenements[i];
+      if (ev.journee) {
+        if (numeroJour(ev.debut) <= num && numeroJour(ev.fin - 1) >= num) res.push(ev);
+      } else if (numeroJour(ev.debut) === num) {
+        res.push(ev);
+      }
+    }
+    return res;
+  }
+
+  // Regroupe les cours qui se chevauchent et les répartit en voies parallèles
+  // (ex. TD1 et TD2 en même temps -> 2 voies côte à côte).
+  function grappes(evenements) {
+    var tries = evenements.slice().sort(function (a, b) { return a.debut - b.debut || (a.groupe < b.groupe ? -1 : 1); });
+    var res = [], courante = null, finGrappe = 0;
+    for (var i = 0; i < tries.length; i++) {
+      var ev = tries[i];
+      if (!courante || ev.debut >= finGrappe) {
+        courante = { voies: [], debut: ev.debut };
+        res.push(courante);
+        finGrappe = 0;
+      }
+      var place = false;
+      for (var v = 0; v < courante.voies.length && !place; v++) {
+        var voie = courante.voies[v];
+        if (voie[voie.length - 1].fin <= ev.debut) { voie.push(ev); place = true; }
+      }
+      if (!place) courante.voies.push([ev]);
+      finGrappe = Math.max(finGrappe, ev.fin);
+    }
+    return res;
+  }
+
+  function etiquettes(ev) {
+    var h = "";
+    if (ev.type) h += '<span class="etiquette ' + esc(ev.type) + '">' + esc(ev.type) + "</span>";
+    if (ev.groupe) h += '<span class="etiquette groupe">' + esc(ev.groupe) + "</span>";
+    return h;
+  }
+
+  // ------------------------------------------------------------------ diapo "jour"
+
+  function carteJour(ev, couleur, t, suivant) {
+    var classe = "carte", etat = "", barre = "";
+    if (ev.fin <= t) classe += " passe";
+    else if (ev.debut <= t) {
+      classe += " encours"; etat = "EN COURS";
+      barre = '<div class="avancement" style="width:' + Math.round(100 * (t - ev.debut) / (ev.fin - ev.debut)) + '%;background:' + couleur + '"></div>';
+    } else if (suivant && ev.debut === suivant.debut) { classe += " suivant"; etat = "À SUIVRE"; }
+    return '<div class="' + classe + '" style="border-left-color:' + couleur + '">' +
+      (etat ? '<div class="etat">' + etat + "</div>" : "") +
+      '<div class="heure">' + hhmm(ev.debut) + " – " + hhmm(ev.fin) + "</div>" +
+      '<div class="titre">' + esc(ev.titre) + "</div>" +
+      '<div class="infos">' + etiquettes(ev) + esc(ev.salle) + "</div>" +
+      (ev.profs.length ? '<div class="profs">' + esc(ev.profs.join(", ")) + "</div>" : "") +
+      barre + "</div>";
+  }
+
+  function htmlColonne(promo, num, t, masquerPasses) {
+    var evs = evenementsDuJour(promo, num), journee = [], cours = [];
+    for (var i = 0; i < evs.length; i++) (evs[i].journee ? journee : cours).push(evs[i]);
+    var suivant = null;
+    for (i = 0; i < cours.length; i++) if (cours[i].debut > t && (!suivant || cours[i].debut < suivant.debut)) suivant = cours[i];
+
+    var h = "";
+    for (i = 0; i < journee.length; i++) h += '<div class="bandeau">' + esc(journee[i].titre) + "</div>";
+    if (!cours.length && !journee.length) h += '<div class="vide">Pas de cours</div>';
+
+    var gs = grappes(cours), passes = 0;
+    for (var g = 0; g < gs.length; g++) {
+      var gr = gs[g], toutesPassees = true;
+      for (var v = 0; v < gr.voies.length; v++) for (var k = 0; k < gr.voies[v].length; k++) if (gr.voies[v][k].fin > t) toutesPassees = false;
+      if (masquerPasses && toutesPassees) { passes++; continue; }
+      h += '<div class="rangee' + (gr.voies.length > 1 ? " multi" : "") + '">';
+      for (v = 0; v < gr.voies.length; v++) {
+        h += '<div class="voie">';
+        for (k = 0; k < gr.voies[v].length; k++) h += carteJour(gr.voies[v][k], promo.couleur, t, suivant);
+        h += "</div>";
+      }
+      h += "</div>";
+    }
+    if (passes) h = '<div class="resume-passe">' + passes + " créneau" + (passes > 1 ? "x" : "") + " terminé" + (passes > 1 ? "s" : "") + "</div>" + h;
+    return h;
+  }
+
+  function noteObsolete(promo) {
+    return promo.perime && promo.maj ? '<span class="note">données du ' + dateCourte(promo.maj) + "</span>" : "";
+  }
+  function dateCourte(ms) { var d = paris(ms); return deuxChiffres(d.getUTCDate()) + "/" + deuxChiffres(d.getUTCMonth() + 1) + " " + hhmm(ms); }
+
+  function diapoJour() {
+    var ref = jourReference(), t = maintenant();
+    var el = document.createElement("div");
+    el.className = "diapo";
+    var h = '<div class="colonnes">';
+    for (var i = 0; i < DONNEES.promos.length; i++) {
+      var p = DONNEES.promos[i];
+      h += '<div class="colonne" style="border-top-color:' + p.couleur + '">' +
+        '<div class="tete" style="color:' + p.couleur + '">' + esc(p.nom) + noteObsolete(p) + "</div>" +
+        '<div class="liste" data-promo="' + i + '">' + htmlColonne(p, ref.num, t, false) + "</div></div>";
+    }
+    el.innerHTML = h + "</div>";
+    return {
+      cle: "jour", onglet: ref.libelle, element: el, duree: (DONNEES.dureeJour || 20) * 1000,
+      titreHtml: ref.num === numeroJour(t) || ref.libelle === "Demain"
+        ? '<span class="accent">' + esc(ref.libelle) + "</span> · " + esc(dateLongue(ref.num))
+        : '<span class="accent">' + esc(majuscule(dateLongue(ref.num))) + "</span>",
+      // une fois affichée, on resserre les colonnes trop pleines
+      ajuster: function () { ajusterColonnes(el, ref.num, t); }
+    };
+  }
+
+  function deborde(col) { return col.scrollHeight > col.clientHeight + 1; }
+
+  function ajusterColonnes(el, num, t) {
+    var cols = el.getElementsByClassName("colonne");
+    for (var i = 0; i < cols.length; i++) {
+      var col = cols[i];
+      if (!deborde(col)) continue;
+      col.className += " compacte";
+      if (!deborde(col)) continue;
+      var liste = col.getElementsByClassName("liste")[0];
+      liste.innerHTML = htmlColonne(DONNEES.promos[+liste.getAttribute("data-promo")], num, t, true);
+    }
+  }
+
+  // ------------------------------------------------------------------ diapo "semaine"
+
+  function diapoSemaine(promo) {
+    var ref = jourReference(), t = maintenant(), auj = numeroJour(t);
+    var lundi = lundiDe(ref.num);
+    var nbJours = 5, i, ev;
+
+    var evsSemaine = [];
+    for (i = 0; i < promo.evenements.length; i++) {
+      ev = promo.evenements[i];
+      var n = numeroJour(ev.debut);
+      if (n >= lundi && n < lundi + 7 || ev.journee && numeroJour(ev.fin - 1) >= lundi && n < lundi + 7) evsSemaine.push(ev);
+      if (!ev.journee && n === lundi + 5) nbJours = 6;  // cours le samedi
+    }
+
+    // Plage horaire : 8h-18h au minimum, élargie si besoin
+    var hDebut = 8, hFin = 18;
+    for (i = 0; i < evsSemaine.length; i++) {
+      ev = evsSemaine[i];
+      if (ev.journee) continue;
+      hDebut = Math.min(hDebut, Math.floor(minutesDuJour(ev.debut) / 60));
+      hFin = Math.max(hFin, Math.ceil(minutesDuJour(ev.fin) / 60));
+    }
+
+    var largeurAxe = 70, ecart = 12, haut = 56, hautCorps = 860 - haut - 8;
+    var largeurJour = (1856 - largeurAxe - ecart * (nbJours - 1)) / nbJours;
+    var pxMin = hautCorps / ((hFin - hDebut) * 60);
+    function y(minutes) { return Math.round((minutes - hDebut * 60) * pxMin); }
+
+    var h = '<div class="semaine"><div class="axe">';
+    for (var hr = hDebut; hr <= hFin; hr++) h += '<div class="h" style="top:' + (haut + y(hr * 60) - 11) + 'px">' + hr + "h</div>";
+    h += "</div>";
+
+    for (var j = 0; j < nbJours; j++) {
+      var num = lundi + j, classe = "jour";
+      if (num === auj) classe += " aujourdhui"; else if (num < auj) classe += " ecoule";
+      h += '<div class="' + classe + '" style="left:' + Math.round(largeurAxe + j * (largeurJour + ecart)) + "px;width:" + Math.round(largeurJour) + 'px">' +
+        '<div class="tetejour">' + esc(majuscule(dateLongue(num).replace(/ \S+$/, ""))) + "</div>" +
+        '<div class="corps" style="top:' + haut + 'px">';
+      for (hr = hDebut; hr <= hFin; hr++) h += '<div class="ligneh" style="top:' + y(hr * 60) + 'px"></div>';
+
+      var duJour = evenementsDuJour(promo, num), cours = [], nbBandeaux = 0;
+      for (i = 0; i < duJour.length; i++) {
+        if (duJour[i].journee) h += '<div class="bandeau-jour" style="top:' + (6 + 36 * nbBandeaux++) + 'px">' + esc(duJour[i].titre) + "</div>";
+        else cours.push(duJour[i]);
+      }
+      var gs = grappes(cours);
+      for (var g = 0; g < gs.length; g++) {
+        var nv = gs[g].voies.length;
+        for (var v = 0; v < nv; v++) for (var k = 0; k < gs[g].voies[v].length; k++) {
+          ev = gs[g].voies[v][k];
+          var top = y(minutesDuJour(ev.debut)), hauteur = Math.max(y(minutesDuJour(ev.fin)) - top, 26);
+          var classes = (hauteur < 62 ? " mini" : "") + (nv > 1 ? " demi" : "") + (ev.debut <= t && t < ev.fin ? " encours" : "");
+          h += '<div class="bloc' + classes + '" style="top:' + top + "px;height:" + hauteur + "px;left:" + (100 * v / nv) + "%;width:" + (100 / nv) + '%">' +
+            '<div class="interieur" style="border-left-color:' + promo.couleur + '">' +
+            '<div class="heure">' + hhmmCourt(ev.debut) + " – " + hhmmCourt(ev.fin) + "</div>" +
+            '<div class="titre">' + esc(ev.titre) + "</div>" +
+            '<div class="infos">' + etiquettes(ev) + esc(ev.salle) + "</div>" +
+            (ev.profs.length ? '<div class="prof">' + esc(ev.profs.join(", ")) + "</div>" : "") +
+            "</div></div>";
+        }
+      }
+      if (num === auj) {
+        var m = minutesDuJour(t);
+        if (m >= hDebut * 60 && m <= hFin * 60) h += '<div class="maintenant" style="top:' + y(m) + 'px"></div>';
+      }
+      h += "</div></div>";
+    }
+    if (!evsSemaine.length) h += '<div class="semaine-vide">Pas de cours cette semaine</div>';
+    h += "</div>";
+
+    var el = document.createElement("div");
+    el.className = "diapo";
+    el.innerHTML = h;
+    var dVen = new Date((lundi + nbJours - 1) * JOUR_MS), dLun = new Date(lundi * JOUR_MS);
+    var periode = dLun.getUTCMonth() === dVen.getUTCMonth()
+      ? "du " + dLun.getUTCDate() + " au " + dVen.getUTCDate() + " " + MOIS[dVen.getUTCMonth()]
+      : "du " + dLun.getUTCDate() + " " + MOIS[dLun.getUTCMonth()] + " au " + dVen.getUTCDate() + " " + MOIS[dVen.getUTCMonth()];
+    return {
+      cle: "semaine-" + promo.nom, onglet: promo.nom, element: el,
+      duree: (evsSemaine.length ? DONNEES.dureeSemaine || 12 : DONNEES.dureeSemaineVide || 4) * 1000,
+      titreHtml: '<span style="color:' + promo.couleur + '">' + esc(promo.nom) + "</span> · Semaine " + periode + noteObsolete(promo),
+      ajuster: function () { ajusterBlocs(el); }
+    };
+  }
+
+  // Bloc trop petit pour son texte : titre sur une ligne, puis sans étiquettes,
+  // puis sans l'heure (lisible sur l'axe), puis sans enseignant en dernier recours.
+  function ajusterBlocs(el) {
+    var blocs = el.getElementsByClassName("bloc"), etapes = [" serre", " sans-etiquette", " sans-heure", " sans-prof"];
+    for (var i = 0; i < blocs.length; i++) {
+      var b = blocs[i], boite = b.firstChild;
+      if (/ mini/.test(b.className)) continue;
+      for (var e = 0; e < etapes.length && boite.scrollHeight > boite.clientHeight + 1; e++) {
+        if (b.className.indexOf(etapes[e]) < 0) b.className += etapes[e];
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------ rotation
+
+  function construireDiapos() {
+    if (!DONNEES) return;
+    var cleActive = diapos[indexDiapo] ? diapos[indexDiapo].cle : null;
+    var nouvelles = [diapoJour()];
+    for (var i = 0; i < DONNEES.promos.length; i++) nouvelles.push(diapoSemaine(DONNEES.promos[i]));
+
+    var contenu = $("contenu");
+    contenu.innerHTML = "";
+    var onglets = "";
+    indexDiapo = 0;
+    for (i = 0; i < nouvelles.length; i++) {
+      contenu.appendChild(nouvelles[i].element);
+      if (nouvelles[i].cle === cleActive) indexDiapo = i;
+      onglets += '<div class="onglet"><div class="remplissage"></div><span class="texte">' + esc(nouvelles[i].onglet) + "</span></div>";
+    }
+    $("onglets").innerHTML = onglets;
+    diapos = nouvelles;
+    if (!cleActive) debutDiapo = Date.now();
+    $("message").style.display = "none";
+    montrerDiapo();
+    majStatut();
+  }
+
+  function montrerDiapo() {
+    var ongs = $("onglets").children;
+    for (var i = 0; i < diapos.length; i++) {
+      diapos[i].element.className = "diapo" + (i === indexDiapo ? " active" : "");
+      ongs[i].className = "onglet" + (i === indexDiapo ? " active" : "");
+      ongs[i].firstChild.style.width = i < indexDiapo ? "100%" : "0";
+    }
+    $("titre-diapo").innerHTML = diapos[indexDiapo].titreHtml;
+    if (diapos[indexDiapo].ajuster) diapos[indexDiapo].ajuster();
+  }
+
+  function tic() {
+    if (diapos.length) {
+      var d = diapos[indexDiapo], ecoule = Date.now() - debutDiapo;
+      if (ecoule >= d.duree) {
+        indexDiapo = (indexDiapo + 1) % diapos.length;
+        debutDiapo = Date.now();
+        // nouveau tour : on recalcule tout (cours en cours, ligne "maintenant"...)
+        if (indexDiapo === 0) construireDiapos(); else montrerDiapo();
+        ecoule = 0;
+      }
+      var ong = $("onglets").children[indexDiapo];
+      if (ong) ong.firstChild.style.width = Math.min(100, 100 * ecoule / d.duree) + "%";
+    }
+  }
+
+  function majHorloge() {
+    var t = maintenant();
+    $("horloge").textContent = hhmm(t);
+    $("date-jour").textContent = majuscule(dateLongue(numeroJour(t))) + " " + paris(t).getUTCFullYear();
+  }
+
+  function majStatut() {
+    var st = $("statut");
+    if (!DONNEES) return;
+    var age = Date.now() - DONNEES.genere;
+    if (age > ALERTE_DONNEES_MS) {
+      st.className = "alerte";
+      st.textContent = "Emploi du temps non actualisé depuis le " + dateCourte(DONNEES.genere);
+    } else {
+      st.className = "";
+      st.textContent = "Mis à jour à " + hhmm(DONNEES.genere);
+    }
+  }
+
+  // Rechargement complet de la page chaque nuit (prend en compte une nouvelle version du code),
+  // seulement si le serveur répond (sinon la TV afficherait une page d'erreur).
+  var dernierRechargement = numeroJour(Date.now());
+  function rechargementNocturne() {
+    var t = Date.now();
+    if (numeroJour(t) !== dernierRechargement && paris(t).getUTCHours() === 4 && t - derniereLectureOk < 10 * 60 * 1000) {
+      window.location.reload();
+    }
+  }
+
+  // ------------------------------------------------------------------ thème clair / sombre
+
+  // Choix mémorisé dans le navigateur ; ?theme=clair ou ?theme=sombre l'impose (utile pour la TV).
+  function appliquerTheme(clair) {
+    document.body.className = clair ? "clair" : "";
+    $("bouton-theme").textContent = clair ? "Mode sombre" : "Mode clair";
+    try { window.localStorage.setItem("edt-theme", clair ? "clair" : "sombre"); } catch (e) { /* stockage indisponible */ }
+  }
+
+  var themeInitial = params.theme;
+  if (!themeInitial) { try { themeInitial = window.localStorage.getItem("edt-theme"); } catch (e) { /* idem */ } }
+  appliquerTheme(themeInitial === "clair");
+  $("bouton-theme").onclick = function () { appliquerTheme(document.body.className !== "clair"); };
+
+  // ------------------------------------------------------------------ démarrage
+
+  ajusterEchelle();
+  window.onresize = ajusterEchelle;
+  $("message").style.display = "block";
+  chargerDonnees();
+  setInterval(chargerDonnees, RELECTURE_DONNEES_MS);
+  setInterval(tic, 200);
+  setInterval(function () { majHorloge(); majStatut(); rechargementNocturne(); }, 1000);
+  majHorloge();
+  setTimeout(function () {
+    if (!DONNEES) $("message").textContent = "Emploi du temps indisponible – nouvelle tentative dans quelques minutes";
+  }, 15000);
+})();
+</script>
+</body>
+</html>
