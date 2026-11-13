@@ -40,7 +40,7 @@ PROMOTIONS = [
 ]
 
 # Durées d'affichage des diapositives (secondes), transmises à la page
-DUREE_DIAPO_JOUR = 20
+DUREE_DIAPO_JOUR = 12
 DUREE_DIAPO_SEMAINE = 12
 DUREE_DIAPO_SEMAINE_VIDE = 4   # promo sans cours de la semaine
 
