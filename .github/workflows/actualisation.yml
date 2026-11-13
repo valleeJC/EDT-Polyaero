@@ -2,11 +2,16 @@ name: Actualisation de l'Emploi du Temps
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # Tous les jours à 6h UTC (8h heure française)
-  workflow_dispatch:      # Lancement manuel
+    - cron: '*/30 * * * *'  # Toutes les 30 minutes (GitHub peut décaler de quelques minutes)
+  workflow_dispatch:         # Lancement manuel
 
 permissions:
   contents: write
+
+# Jamais deux actualisations en même temps (ADE limite le nombre de requêtes)
+concurrency:
+  group: actualisation-edt
+  cancel-in-progress: false
 
 jobs:
   build-and-commit:
@@ -16,6 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          clean: false   # conserve le dossier cache/ (derniers flux ADE valides) d'une exécution à l'autre
 
       - name: Configuration de Python
         uses: actions/setup-python@v5
@@ -25,13 +31,13 @@ jobs:
       - name: Installer les dépendances
         run: |
           python -m pip install --upgrade pip
-          pip install requests icalendar urllib3 tzdata
+          pip install requests icalendar tzdata
 
-      - name: Exécuter le script
+      - name: Générer les données
         env:
           PYTHONIOENCODING: "utf-8"
         run: |
-          python EDT_actualisation.py
+          python generer_edt.py
 
       - name: Déployer sur gh-pages (PowerShell)
         shell: powershell
@@ -43,26 +49,25 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # 3. Nettoyage préventif
-          git checkout main -f
-          if (git branch --list gh-pages-temp) { git branch -D gh-pages-temp }
-
-          # 4. Vérification que index.html a bien été produit par le script
-          if (-not (Test-Path index.html)) {
-              Write-Error "Le fichier index.html n'a pas été généré par EDT_actualisation.py !"
+          # 3. Vérification que data.js a bien été produit par le script
+          if (-not (Test-Path site\data.js)) {
+              Write-Error "Le fichier site/data.js n'a pas été généré par generer_edt.py !"
               exit 1
           }
 
-          # 5. Création de la branche orpheline
+          # 4. Nettoyage préventif
+          if (git branch --list gh-pages-temp) { git branch -D gh-pages-temp }
+
+          # 5. Branche orpheline ne contenant que la page et ses données (à la racine)
           git checkout --orphan gh-pages-temp
+          git rm -r -q --cached .
+          Copy-Item site\index.html, site\data.js -Destination . -Force
+          git add -f index.html data.js
 
-          # 6. Ajout du fichier HTML généré
-          git add -f index.html
-
-          # 7. Commit et Push forcé
-          git commit -m "🤖 Mise à jour automatique de l'emploi du temps"
+          # 6. Commit et push forcé
+          git commit -q -m "Mise à jour automatique de l'emploi du temps"
           git push origin gh-pages-temp:gh-pages --force
 
-          # 8. Nettoyage final propre
+          # 7. Nettoyage final
           git checkout main -f
           git branch -D gh-pages-temp

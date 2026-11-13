@@ -7,3 +7,5 @@ _github_ref/
 # anciennes versions locales (avant la refonte)
 /main.py
 /index.html
+# données générées (publiées sur gh-pages par le workflow)
+site/data.js

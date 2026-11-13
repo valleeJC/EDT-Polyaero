@@ -603,8 +603,11 @@ body.clair .bloc.encours .interieur { background: #e0f2fe; box-shadow: inset 0 0
   function majStatut() {
     var st = $("statut");
     if (!DONNEES) return;
-    var age = Date.now() - DONNEES.genere;
-    if (age > ALERTE_DONNEES_MS) {
+    // Alerte seulement en semaine de 7 h à 19 h : la nuit et le week-end,
+    // l'ordinateur qui fait les mises à jour peut être éteint sans que ce soit un problème.
+    var age = Date.now() - DONNEES.genere, p = paris(Date.now());
+    var heuresOuvrees = p.getUTCDay() >= 1 && p.getUTCDay() <= 5 && p.getUTCHours() >= 7 && p.getUTCHours() < 19;
+    if (age > ALERTE_DONNEES_MS && heuresOuvrees) {
       st.className = "alerte";
       st.textContent = "Emploi du temps non actualisé depuis le " + dateCourte(DONNEES.genere);
     } else {
